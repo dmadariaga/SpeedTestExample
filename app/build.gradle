@@ -28,8 +28,7 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.1.1'
-    compile 'com.github.akinaru:speedtest:1.11'
+    compile 'com.github.akinaru:speedtest:1.15'
     compile 'pl.pawelkleczkowski.customgauge:CustomGauge:1.0.3'
-    compile 'com.github.PhilJay:MPAndroidChart:v3.0.0-beta1'
     compile 'com.jjoe64:graphview:4.1.1'
 }
