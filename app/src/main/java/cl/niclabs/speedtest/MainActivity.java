@@ -15,10 +15,7 @@ import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.text.NumberFormat;
+import java.util.ArrayList;
 
 import fr.bmartel.speedtest.ISpeedTestListener;
 import fr.bmartel.speedtest.SpeedTestError;
@@ -31,12 +28,14 @@ public class MainActivity extends AppCompatActivity {
     private CustomGauge speedTestGauge;
     private GraphView downloadGraph;
     private GraphView uploadGraph;
-    private GraphView latencyGraph;
+    private GraphView pingGraph;
     private LineGraphSeries<DataPoint> downloadSeries;
     private LineGraphSeries<DataPoint> uploadSeries;
-    private BarGraphSeries<DataPoint> latencySeries;
+    private BarGraphSeries<DataPoint> pingSeries;
     private TextView downloadTransferRate;
     private TextView uploadTransferRate;
+    private TextView latency;
+    private TextView jitter;
 
 
     @Override
@@ -46,14 +45,24 @@ public class MainActivity extends AppCompatActivity {
         speedTestGauge = (CustomGauge) findViewById(R.id.gauge3);
         downloadTransferRate = (TextView) findViewById(R.id.downloadTransferRate);
         uploadTransferRate = (TextView) findViewById(R.id.uploadTransferRate);
+        latency = (TextView) findViewById(R.id.latency);
+        jitter = (TextView) findViewById(R.id.jitter);
 
-        latencyGraph = (GraphView) findViewById(R.id.graph3);
+
+        pingGraph = (GraphView) findViewById(R.id.graph3);
+        pingGraph.getViewport().setXAxisBoundsManual(true);
+        pingGraph.getViewport().setYAxisBoundsManual(true);
+        pingGraph.getViewport().setMinX(0);
+        pingGraph.getViewport().setMaxX(10);
+        pingGraph.getViewport().setMinY(0);
+        pingGraph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
+        pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(false);
 
         downloadGraph = (GraphView) findViewById(R.id.graph1);
         downloadGraph.getViewport().setXAxisBoundsManual(true);
         downloadGraph.getViewport().setYAxisBoundsManual(true);
         downloadGraph.getViewport().setMinX(0);
-        downloadGraph.getViewport().setMaxX(1);
+        downloadGraph.getViewport().setMaxX(100);
 
         downloadGraph.getGridLabelRenderer().setVerticalLabelsVisible(false);
         downloadGraph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
@@ -62,46 +71,65 @@ public class MainActivity extends AppCompatActivity {
         uploadGraph.getViewport().setXAxisBoundsManual(true);
         uploadGraph.getViewport().setYAxisBoundsManual(true);
         uploadGraph.getViewport().setMinX(0);
-        uploadGraph.getViewport().setMaxX(1);
+        uploadGraph.getViewport().setMaxX(100);
 
         uploadGraph.getGridLabelRenderer().setVerticalLabelsVisible(false);
         uploadGraph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
+    }
+
+    public void onClickStart(View view) throws Exception {
+        downloadGraph.removeAllSeries();
+        uploadGraph.removeAllSeries();
+        pingGraph.removeAllSeries();
 
         downloadSeries = new LineGraphSeries<DataPoint>();
         uploadSeries = new LineGraphSeries<DataPoint>();
         downloadGraph.addSeries(downloadSeries);
         uploadGraph.addSeries(uploadSeries);
-        setData1(0,0);
-        setData2(0,0);
-        //new SpeedTestTask().execute();
-    }
+        pingSeries = new BarGraphSeries<>();
+        pingGraph.addSeries(pingSeries);
+        pingSeries.setSpacing(20);
 
-    public void onClickStart(View view) throws Exception {
+        ArrayList<Double> pingRtt = new ArrayList<>();
+        double sumRtt = 0;
+        double maxRtt = 0d;
+        int count = 10;
+        /*
+        for (int i=0; i<count; i++){
+            PingResults pingResults = SpeedTest.ping("ping.online.net", 1);
+            Double rtt = pingResults.getMax();
+            pingRtt.add(rtt);
+            sumRtt += rtt;
+            maxRtt = (rtt > maxRtt ? (rtt.intValue()+100)/100*100 : maxRtt);
+            pingGraph.getViewport().setMaxY(maxRtt);
 
-        StringBuffer echo = new StringBuffer();
-        Runtime runtime = Runtime.getRuntime();
-        Process proc = runtime.exec("ping -c 1 " + "ping.online.net");
-        proc.waitFor();
-        int exit = proc.exitValue();
-        if (exit == 0) {
-            InputStreamReader reader = new InputStreamReader(proc.getInputStream());
-            BufferedReader buffer = new BufferedReader(reader);
-            String line = "";
-            while ((line = buffer.readLine()) != null) {
-                echo.append(line + "\n");
-            }
-            Log.d("PING", echo.toString());
-        } else if (exit == 1) {
-            Log.d("PING", "failed, exit = 1");
-        } else {
-            Log.d("PING", "failed, exit = 2");
+            DataPoint point = new DataPoint(i + 0.5, rtt);
+            pingSeries.appendData(point, false, 10);
+            pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(true);
         }
+        latency.setText(" " + sumRtt/10);
+        //jitter.setText(" " + pingResults.getMdev());
+        */
+
+        /*
+        PingResults pingResults = SpeedTest.ping("ping.online.net", count);
+        int maxPing = 0;
+        latency.setText(" " + pingResults.getAvg());
+        jitter.setText(" " + pingResults.getMdev());
+        for (int i=0; i<pingResults.getRttList().size(); i++){
+            maxPing = (pingResults.getRttList().get(i) > maxPing ? (pingResults.getRttList().get(i).intValue()+100)/100*100 : maxPing);
+            DataPoint point = new DataPoint(i + 0.5, pingResults.getRttList().get(i));
+            pingSeries.appendData(point, false, count);
+        }
+        pingGraph.getViewport().setMaxY(maxPing);
+        pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(true);*/
 
         new SpeedTestTask().execute();
     }
 
     public class SpeedTestTask extends AsyncTask<Void, Void, String> {
-
+        public int downloadPercent = -1;
+        public boolean first = true;
         @Override
         protected String doInBackground(final Void... params) {
 
@@ -136,16 +164,29 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onDownloadProgress(final float percent, final SpeedTestReport downloadReport) {
                     //Log.i("speed-test-app","percentdown"+ percent);
-                    final float transferRateBit = downloadReport.getTransferRateBit();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            downloadTransferRate.setText( (int)(transferRateBit/1000) + " ");
-                            speedTestGauge.setValue((int) transferRateBit);
-                            setData1(downloadReport.getReportTime()-downloadReport.getStartTime(), transferRateBit);
-                            Log.d("SetData", downloadReport.getReportTime()-downloadReport.getStartTime() + " " + transferRateBit/1000);
+                    if (Math.round(percent) > downloadPercent) {
+                        /*
+                        if (first){
+                            downloadGraph.getViewport().setMinX((downloadReport.getReportTime() - downloadReport.getStartTime())/1000);
+                            Log.d("SetData", downloadReport.getReportTime() - downloadReport.getStartTime() + " ");
+
+                            first = false;
                         }
-                    });
+                        Log.d("PING", "MIN X" + downloadGraph.getViewport().getMinX(true));
+                        */
+                        downloadPercent = Math.round(percent);
+                        final float transferRateBit = downloadReport.getTransferRateBit();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                downloadTransferRate.setText((int) (transferRateBit / 1000) + " ");
+                                speedTestGauge.setValue((int) transferRateBit);
+                                //setData1(downloadReport.getReportTime() - downloadReport.getStartTime(), transferRateBit);
+                                setData1(downloadPercent, transferRateBit);
+                                //Log.d("SetData", downloadReport.getReportTime() - downloadReport.getStartTime() + " " + transferRateBit / 1000);
+                            }
+                        });
+                    }
                 }
 
                 @Override
@@ -156,13 +197,17 @@ public class MainActivity extends AppCompatActivity {
 
             });
 
-            speedTestSocket.startDownload("ping.online.net", 80, "/1Mo.dat");
+            //speedTestSocket.startDownload("ping.online.net", 80, "/1Mo.dat");
+            speedTestSocket.startDownload("download host", 5000, "/speedtest/10");
 
             return null;
         }
     }
 
     public class SpeedTestTask1 extends AsyncTask<Void, Void, String> {
+        public int uploadPercent = -1;
+        public float max = 0;
+        public boolean first = true;
 
         @Override
         protected String doInBackground(final Void... params) {
@@ -209,41 +254,52 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onUploadProgress(float percent,final SpeedTestReport uploadReport) {
-                    Log.i("speed-test-app","percentup"+ percent);
-                    final float transferRateBit = uploadReport.getTransferRateBit();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            uploadTransferRate.setText( (int)(transferRateBit/1000) + " ");
-                            if (transferRateBit >= 1000000)
-                                return;
-                            speedTestGauge.setValue((int) transferRateBit);
-                            setData2(uploadReport.getReportTime()-uploadReport.getStartTime(), transferRateBit);
-                            Log.d("SetData", uploadReport.getReportTime()-uploadReport.getStartTime() + " " + transferRateBit);
-                        }
-                    });
+                    if (Math.round(percent) > uploadPercent) {
+                        /*if (first){
+                            uploadGraph.getViewport().setMinX((uploadReport.getReportTime() - uploadReport.getStartTime())/1000);
+                            Log.d("SetData", uploadReport.getReportTime() - uploadReport.getStartTime() + " ");
+                            first = false;
+                        }*/
+                        uploadPercent = Math.round(percent);
+                        final float transferRateBit = uploadReport.getTransferRateBit();
+                        Log.i("speed-test-app", "percentup" + uploadPercent + " bps " + transferRateBit);
+                        max = (transferRateBit > max ? transferRateBit : max);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                uploadTransferRate.setText((int) (transferRateBit / 1000) + " ");
+                                speedTestGauge.setValue((int) transferRateBit);
+                                //setData2(uploadReport.getReportTime() - uploadReport.getStartTime(), transferRateBit);
+                                setData2(uploadPercent, transferRateBit);
+                                //Log.d("SetData", uploadReport.getReportTime() - uploadReport.getStartTime() + " " + transferRateBit);
+                            }
+                        });
+                    }
                 }
 
             });
-
-            speedTestSocket.startUpload("1.testdebit.info", 80, "/", 10000000);
+            //Log.d("PING", speedTestSocket.getSocketTimeout() + " TIMEOUT");
+            //speedTestSocket.setSocketTimeout(5000);
+            //speedTestSocket.startUpload("1.testdebit.info", 80, "/", 1000000);
+            speedTestSocket.startUpload("upload host", 5000, "/speedtest/", 10000000);
+            Log.d("MAX", max + " bit/s");
             return null;
         }
     }
 
     private void setData1(long time, float transferRateBit) {
-        DataPoint newPoint = new DataPoint(time/1000.0, transferRateBit/1000);
-        downloadSeries.appendData(newPoint, false, 4000);
-        downloadGraph.getViewport().setMaxX(time/1000.0);
+        DataPoint newPoint = new DataPoint(time, transferRateBit/1000);
+        downloadSeries.appendData(newPoint, false, 40000);
+        //downloadGraph.getViewport().setMaxX(time/1000.0);
         //Log.d("GetMAX", transferRateBit/1000+" "+downloadGraph.getViewport().getMaxY(true));
         downloadGraph.getViewport().setMaxY( (int) (downloadGraph.getViewport().getMaxY(true) + 50) / 50 *50);
 
         //mGraph.addSeries(new LineGraphSeries<DataPoint>(new DataPoint[] {newPoint}));
     }
     private void setData2(long time, float transferRateBit) {
-        DataPoint newPoint = new DataPoint(time/1000.0, transferRateBit/1000);
+        DataPoint newPoint = new DataPoint(time, transferRateBit/1000);
         uploadSeries.appendData(newPoint, false, 4000);
-        uploadGraph.getViewport().setMaxX(time/1000.0);
+        //uploadGraph.getViewport().setMaxX(time/1000.0);
         uploadGraph.getViewport().setMaxY( (int) (uploadGraph.getViewport().getMaxY(true) + 50) / 50 *50);
 
         //mGraph.addSeries(new LineGraphSeries<DataPoint>(new DataPoint[] {newPoint}));
