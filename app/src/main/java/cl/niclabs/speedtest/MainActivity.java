@@ -1,11 +1,19 @@
 package cl.niclabs.speedtest;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.jjoe64.graphview.DefaultLabelFormatter;
@@ -36,6 +44,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView uploadTransferRate;
     private TextView latency;
     private TextView jitter;
+    private Spinner serverSpinner;
+    private String host;
+    private int fileOctetSize;
+    private EditText editTextFileSize;
 
 
     @Override
@@ -47,6 +59,15 @@ public class MainActivity extends AppCompatActivity {
         uploadTransferRate = (TextView) findViewById(R.id.uploadTransferRate);
         latency = (TextView) findViewById(R.id.latency);
         jitter = (TextView) findViewById(R.id.jitter);
+        editTextFileSize = (EditText) findViewById(R.id.editText);
+        serverSpinner = (Spinner) findViewById(R.id.spinner);
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.servers_array, android.R.layout.simple_spinner_item);
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        serverSpinner.setAdapter(adapter);
 
 
         pingGraph = (GraphView) findViewById(R.id.graph3);
@@ -78,6 +99,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickStart(View view) throws Exception {
+
+        View mView = this.getCurrentFocus();
+        if (mView != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(mView.getWindowToken(), 0);
+        }
+
+        host = serverSpinner.getSelectedItem().toString();
+        if (editTextFileSize.getText().toString().equals("")){
+            editTextFileSize.setText("1");
+        }
+        fileOctetSize = Integer.parseInt(editTextFileSize.getText().toString());
         downloadGraph.removeAllSeries();
         uploadGraph.removeAllSeries();
         pingGraph.removeAllSeries();
@@ -198,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
             });
 
             //speedTestSocket.startDownload("ping.online.net", 80, "/1Mo.dat");
-            speedTestSocket.startDownload("download host", 5000, "/speedtest/10");
+            speedTestSocket.startDownload(host, 5000, "/speedtest/" + fileOctetSize);
 
             return null;
         }
@@ -281,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
             //Log.d("PING", speedTestSocket.getSocketTimeout() + " TIMEOUT");
             //speedTestSocket.setSocketTimeout(5000);
             //speedTestSocket.startUpload("1.testdebit.info", 80, "/", 1000000);
-            speedTestSocket.startUpload("upload host", 5000, "/speedtest/", 10000000);
+            speedTestSocket.startUpload(host, 5000, "/speedtest/", fileOctetSize*1000000);
             Log.d("MAX", max + " bit/s");
             return null;
         }

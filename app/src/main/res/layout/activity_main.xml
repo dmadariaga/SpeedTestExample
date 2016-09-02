@@ -18,7 +18,9 @@
         <TableLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:stretchColumns="*">
+            android:stretchColumns="*"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
 
             <TableRow
                 android:layout_width="0dp"
@@ -250,12 +252,44 @@
             </TableRow>
 
             <TableRow
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="match_parent">
+                <TableLayout
+                    android:layout_weight="2"
+                    android:layout_width="0dp"
+                    android:orientation="horizontal">
+                    <Spinner
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/spinner"/>
+                    <TableRow>
+                        <EditText
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:ems="10"
+                            android:id="@+id/editText"
+                            android:layout_weight="4"
+                            android:gravity="right"
+                            android:text="1"
+                            android:imeOptions="actionSend"
+                            />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:text="MB"
+                            android:id="@+id/textV5iew9"
+                            android:layout_weight="1"
+                            android:layout_marginLeft="5dp"
+                            android:layout_height="wrap_content" />
+                    </TableRow>
+
+                </TableLayout>
+
 
                 <Button
-                    android:layout_width="214dp"
-                    android:layout_height="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
                     android:text="START"
                     android:id="@+id/button"
                     android:onClick="onClickStart"
@@ -264,7 +298,7 @@
                     android:layout_alignEnd="@+id/graph1"
                     android:layout_alignParentLeft="true"
                     android:layout_alignParentStart="true"
-                    android:textSize="@dimen/abc_text_size_display_2_material"
+                    android:textSize="@dimen/abc_text_size_caption_material"
                     android:layout_above="@+id/percent"
                     android:layout_weight="1"/>
 

@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">SpeedTest</string>
+
+    <string-array name="servers_array">
+        <item>blasco.duckdns.org</item>
+    </string-array>
+
 </resources>
