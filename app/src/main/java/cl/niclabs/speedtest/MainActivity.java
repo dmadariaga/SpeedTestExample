@@ -1,24 +1,27 @@
 package cl.niclabs.speedtest;
 
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
-import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.jjoe64.graphview.DefaultLabelFormatter;
 import com.jjoe64.graphview.GraphView;
-import com.jjoe64.graphview.GridLabelRenderer;
 import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
@@ -44,10 +47,14 @@ public class MainActivity extends AppCompatActivity {
     private TextView uploadTransferRate;
     private TextView latency;
     private TextView jitter;
-    private Spinner serverSpinner;
+    private TextView urlsTime;
+    private EditText serverUrl;
     private String host;
     private int fileOctetSize;
     private EditText editTextFileSize;
+    private WebView webView;
+    private long startTime, finishTime;
+    private int i = 0;
 
 
     @Override
@@ -60,15 +67,52 @@ public class MainActivity extends AppCompatActivity {
         latency = (TextView) findViewById(R.id.latency);
         jitter = (TextView) findViewById(R.id.jitter);
         editTextFileSize = (EditText) findViewById(R.id.editText);
-        serverSpinner = (Spinner) findViewById(R.id.spinner);
-        // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.servers_array, android.R.layout.simple_spinner_item);
-        // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner
-        serverSpinner.setAdapter(adapter);
+        serverUrl = (EditText) findViewById(R.id.server_url);
+        urlsTime = (TextView) findViewById(R.id.urls);
 
+        final String[] urls = {"http://www.facebook.com",
+                                "http://www.google.cl",
+                                "http://172.30.65.56:5000",
+                                "http://anakena.dcc.uchile.cl:5000",
+                                "http://www.niclabs.cl",
+                                "http://www.yapo.cl"};
+        webView = (WebView) findViewById(R.id.webView);
+        webView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true;
+            }
+        });
+
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient(){
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                startTime = System.currentTimeMillis();
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                startTime = -1;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                finishTime = System.currentTimeMillis();
+
+                if (startTime == -1)
+                    urlsTime.setText(urlsTime.getText() + "\n" + urls[i] + ": ERROR AL CARGAR");
+                else
+                    urlsTime.setText(urlsTime.getText() + "\n" + urls[i] + ": " + (finishTime-startTime) + " ms");
+
+                if (i<urls.length-1)
+                    webView.loadUrl(urls[++i]);
+            }
+        });
+        webView.getSettings().setAppCacheEnabled(false);
+        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+
+        webView.loadUrl(urls[i]);
 
         pingGraph = (GraphView) findViewById(R.id.graph3);
         pingGraph.getViewport().setXAxisBoundsManual(true);
@@ -106,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
             imm.hideSoftInputFromWindow(mView.getWindowToken(), 0);
         }
 
-        host = serverSpinner.getSelectedItem().toString();
+        host = serverUrl.getText().toString();
         if (editTextFileSize.getText().toString().equals("")){
             editTextFileSize.setText("1");
         }
