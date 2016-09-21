@@ -1,23 +1,21 @@
 package cl.niclabs.speedtest;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
-import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -56,7 +54,80 @@ public class MainActivity extends AppCompatActivity {
     private long startTime, finishTime;
     private int i = 0;
 
+/*
+144p: &vq=tiny
+240p: &vq=small
+360p: &vq=medium
+480p: &vq=large
+720p: &vq=hd720
 
+https://developers.google.com/youtube/iframe_api_reference#Examples
+ */
+
+    String frameVideo = "<html><body>" +
+                /*"<iframe id='player' class=\"youtube-player\" style=\"border: 0; width: 100%; height: 100%; padding:0px; margin:0px\" id=\"ytplayer\" type=\"text/html\" src=\"http://www.youtube.com/embed/" +
+                "Io7AbxE9hYk?start=266&enablejsapi=1" +
+                "\" frameborder=\"0\">\n" +
+                "</iframe>\n" + */
+            "<div id=\"player\"></div>\n" +
+            "<script type=\"text/javascript\">\n" +
+            "   var tag = document.createElement('script');\n" +
+            "   tag.src = 'https://www.youtube.com/iframe_api';\n" +
+            "   var firstScriptTag = document.getElementsByTagName('script')[0];\n" +
+            "   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);\n" +
+            "   var player;\n" +
+            "   var quality = ['tiny', 'small', 'medium', 'large', 'hd720'];\n" +
+            "   var lastState = -1;\n" +
+            "   var i = 0;\n" +
+            "   function onYouTubeIframeAPIReady() {\n" +
+            "       player = new YT.Player('player', {\n" +
+            "           height: '100%',\n" +
+            "           width: '100%',\n" +
+            "       playerVars: {\n" +
+            "           autoplay: 1,\n" +
+            "           controls: 0,\n" +
+            "           showinfo: 0\n" +
+            "       }," +
+            //"           videoId: '6pxRHBw-k8M',\n" +
+            "       events: {\n" +
+            "            'onReady': onPlayerReady,\n" +
+            "            'onStateChange': onPlayerStateChange,\n" +
+            "            'onPlaybackQualityChange': onPlayerPlaybackQualityChange\n" +
+            "          }\n" +
+            "        });\n\n" +
+            "   }\n" +
+
+            "   function testEcho(message) {\n" +
+            "       window.JSInterface.doEchoTest(message);\n" +
+            "   }\n" +
+            "   function onPlayerReady(event) {\n" +
+            "       player.loadVideoById({'videoId': 'Io7AbxE9hYk',\n" +
+            "               'startSeconds': 265,\n" +
+            "               'endSeconds': 275,\n" +
+            "               'suggestedQuality': quality[i]});\n" + //\"Io7AbxE9hYk\", 265, \"medium\");\n" +
+            //"       player.playVideo();\n" +
+            //"           player.setPlaybackQuality('tiny');\n" +
+            "   }\n" +
+            "   function onPlayerStateChange(event){\n" +
+            "       testEcho(event.data);\n" +
+            "       if (event.data == YT.PlayerState.ENDED && i < quality.length - 1) {\n" +
+            "           if (lastState == YT.PlayerState.PAUSED)" +
+            "               i = i+1;\n" +
+            "           testEcho(player.getPlaybackQuality());\n" +
+            "           player.loadVideoById({'videoId': 'Io7AbxE9hYk',\n" +
+            "                   'startSeconds': 265,\n" +
+            "                   'endSeconds': 275,\n" +
+            "                   'suggestedQuality': quality[i]});\n" +
+            "       }\n" +
+            "       lastState = event.data;\n" +
+            "   }\n" +
+            "   function onPlayerPlaybackQualityChange(event){\n" +
+            "       testEcho('quality: ' + event.data);\n" +
+            //"       player.setPlaybackQuality('tiny');\n" +
+            //"       testEcho('quality2: ' + event.data);\n" +
+            "   }\n" +
+            "</script>" +
+            "</body></html>";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,22 +140,22 @@ public class MainActivity extends AppCompatActivity {
         editTextFileSize = (EditText) findViewById(R.id.editText);
         serverUrl = (EditText) findViewById(R.id.server_url);
         urlsTime = (TextView) findViewById(R.id.urls);
-
         final String[] urls = {"http://www.facebook.com",
                                 "http://www.google.cl",
                                 "http://172.30.65.56:5000",
                                 "http://anakena.dcc.uchile.cl:5000",
                                 "http://www.niclabs.cl",
-                                "http://www.yapo.cl"};
+                                "http://www.yapo.cl"
+        };
         webView = (WebView) findViewById(R.id.webView);
         webView.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public boolean onTouch(View v, MotionEvent event) {
+            public boolean onTouch(View view, MotionEvent motionEvent) {
                 return true;
             }
         });
-
         webView.getSettings().setJavaScriptEnabled(true);
+
         webView.setWebViewClient(new WebViewClient(){
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
@@ -107,12 +178,21 @@ public class MainActivity extends AppCompatActivity {
 
                 if (i<urls.length-1)
                     webView.loadUrl(urls[++i]);
+                else{
+                    webView.setWebViewClient(new WebViewClient());
+                    webView.loadData(frameVideo, "text/html", "utf-8");
+                }
             }
+
+
         });
         webView.getSettings().setAppCacheEnabled(false);
         webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.addJavascriptInterface(new JSInterface(webView), "JSInterface");
+        webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
         webView.loadUrl(urls[i]);
+        //webView.loadUrl("https://www.youtube.com/embed/-3OvswCDfpY?showinfo=0&controls=0&rel=0&vq=tiny");
 
         pingGraph = (GraphView) findViewById(R.id.graph3);
         pingGraph.getViewport().setXAxisBoundsManual(true);
@@ -141,7 +221,39 @@ public class MainActivity extends AppCompatActivity {
         uploadGraph.getGridLabelRenderer().setVerticalLabelsVisible(false);
         uploadGraph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
     }
+    private void emulateClick(final WebView webview) {
+        long delta = 100;
+        long downTime = SystemClock.uptimeMillis();
+        float x = webview.getLeft() + webview.getWidth()/2; //in the middle of the webview
+        float y = webview.getTop() + webview.getHeight()/2;
 
+        final MotionEvent motionEvent = MotionEvent.obtain( downTime, downTime + delta, MotionEvent.ACTION_DOWN, x, y, 0 );
+        final MotionEvent motionEvent2 = MotionEvent.obtain( downTime + delta + 1, downTime + delta * 2, MotionEvent.ACTION_UP, x, y, 0 );
+        Runnable tapdown = new Runnable() {
+            @Override
+            public void run() {
+                if (webview != null) {
+                    webview.dispatchTouchEvent(motionEvent);
+                }
+            }
+        };
+
+        Runnable tapup = new Runnable() {
+            @Override
+            public void run() {
+                if (webview != null) {
+                    webview.dispatchTouchEvent(motionEvent2);
+                }
+            }
+        };
+
+        int toWait = 0;
+        int delay = 100;
+        webview.postDelayed(tapdown, delay);
+        delay += 100;
+        webview.postDelayed(tapup, delay);
+
+    }
     public void onClickStart(View view) throws Exception {
 
         View mView = this.getCurrentFocus();
@@ -242,17 +354,16 @@ public class MainActivity extends AppCompatActivity {
                 public void onDownloadProgress(final float percent, final SpeedTestReport downloadReport) {
                     //Log.i("speed-test-app","percentdown"+ percent);
                     if (Math.round(percent) > downloadPercent) {
-                        /*
-                        if (first){
-                            downloadGraph.getViewport().setMinX((downloadReport.getReportTime() - downloadReport.getStartTime())/1000);
-                            Log.d("SetData", downloadReport.getReportTime() - downloadReport.getStartTime() + " ");
-
-                            first = false;
-                        }
-                        Log.d("PING", "MIN X" + downloadGraph.getViewport().getMinX(true));
-                        */
                         downloadPercent = Math.round(percent);
                         final float transferRateBit = downloadReport.getTransferRateBit();
+
+                        if (first){
+                            if (downloadPercent > 0){
+                                setData1(0, transferRateBit);
+                            }
+                            first = false;
+                        }
+
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -382,4 +493,22 @@ public class MainActivity extends AppCompatActivity {
         //mGraph.addSeries(new LineGraphSeries<DataPoint>(new DataPoint[] {newPoint}));
     }
 
+
+    public class JSInterface{
+
+        private WebView mAppView;
+        public JSInterface  (WebView appView) {
+            this.mAppView = appView;
+        }
+
+        @JavascriptInterface
+        public void doEchoTest(String echo){
+            Log.d("VideoView", echo);
+        }
+
+        @JavascriptInterface
+        public void playVideo(){
+            emulateClick(webView);
+        }
+    }
 }
