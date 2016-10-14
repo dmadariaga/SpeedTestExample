@@ -9,7 +9,7 @@ import fr.bmartel.speedtest.SpeedTestMode;
 import fr.bmartel.speedtest.SpeedTestReport;
 import fr.bmartel.speedtest.SpeedTestSocket;
 
-public class SpeedTestTask extends AsyncTask<SpeedTestMode, Void, String> {
+public class SpeedTestTask extends AsyncTask<SpeedTestMode, Void, Void> {
     private int progressPercent = -1;
     private SpeedTest speedTest;
     private final String host;
@@ -22,7 +22,7 @@ public class SpeedTestTask extends AsyncTask<SpeedTestMode, Void, String> {
     }
 
     @Override
-    protected String doInBackground(final SpeedTestMode... params) {
+    protected Void doInBackground(final SpeedTestMode... params) {
         final SpeedTestMode mode = params[0];
         final SpeedTestSocket speedTestSocket = new SpeedTestSocket();
         speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
