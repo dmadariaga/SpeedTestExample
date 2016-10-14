@@ -17,7 +17,8 @@
                 playerVars: {
                     autoplay: 1,
                     controls: 0,
-                    showinfo: 0
+                    showinfo: 0,
+                    rel: 0
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -30,9 +31,10 @@
             window.JSInterface.doEchoTest(message);
         }
         function onPlayerReady(event) {
-            player.loadVideoById({'videoId': 'Io7AbxE9hYk',
-                'startSeconds': 265,
-                'endSeconds': 275,
+            window.JSInterface.startBytes();
+            player.loadVideoById({'videoId': '74k9vM6ELJk',
+                'startSeconds': 40,
+                'endSeconds': 50,
                 'suggestedQuality': quality[i]});
             player.mute();
         }
@@ -44,9 +46,9 @@
                     i = i + 1;
                 }
                 //testEcho(player.getPlaybackQuality());
-                player.loadVideoById({'videoId': 'Io7AbxE9hYk',
-                    'startSeconds': 265,
-                    'endSeconds': 275,
+                player.loadVideoById({'videoId': '74k9vM6ELJk',
+                    'startSeconds': 40,
+                    'endSeconds': 50,
                     'suggestedQuality': quality[i]});
             }
             else if (event.data == YT.PlayerState.UNSTARTED){

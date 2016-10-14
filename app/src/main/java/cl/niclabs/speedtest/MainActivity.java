@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.Formatter;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -50,8 +51,6 @@ public class MainActivity extends AppCompatActivity implements MainTest{
 https://developers.google.com/youtube/iframe_api_reference#Examples
  */
 
-    private ArrayList<String> urls;
-    private long[] loadingTime;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,10 +146,10 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         pingSeries.setSpacing(20);
 
         urlsTime.setText("");
-        urls = new ArrayList<>();
 
-        //startSpeedTest(fileOctetSize);
-        startWebPagesTest();
+        startSpeedTest(fileOctetSize);
+        //startWebPagesTest();
+        //startVideoTest();
         View mView = this.getCurrentFocus();
         if (mView != null) {
             InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -253,10 +252,6 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         new SpeedTest(this, fileOctetSize).start();
     }
 
-    public void startWebPagesTest() {
-        new WebPagesTest(this, webView).start();
-    }
-
     @Override
     public void onSpeedTestFinish() {
         startWebPagesTest();
@@ -274,22 +269,30 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         }
     }
 
+    public void startWebPagesTest() {
+        new WebPagesTest(this, webView).start();
+    }
+
     @Override
-    public void onWebPageLoaded(String url, long loadingTime){
-        urlsTime.setText(urlsTime.getText() + "\n" + url + ": " + loadingTime + " ms");
+    public void onWebPageLoaded(String url, long loadingTime, long sizeByte){
+        urlsTime.setText(urlsTime.getText() + "\n" + url + ": " + loadingTime + "ms " + Formatter.formatFileSize(this, sizeByte));
     }
 
     @Override
     public void onWebPageTestFinish() {
-        //startVideoTest();
+        startVideoTest();
+    }
+
+    private void startVideoTest() {
+        new VideoTest(this, webView).start();
     }
 
     @Override
-    public void onVideoEnded(final String quality, final int timesBuffering) {
+    public void onVideoEnded(final String quality, final int timesBuffering, final long totalBytes) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                urlsTime.setText(urlsTime.getText() + "\nTime buffering in " + quality + ": " + timesBuffering+ "ms");
+                urlsTime.setText(urlsTime.getText() + "\nTime buffering in " + quality + ": " + timesBuffering+ "ms, " + Formatter.formatFileSize(getApplicationContext(), totalBytes));
             }
         });
     }
@@ -303,9 +306,4 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
             }
         });
     }
-
-    private void startVideoTest() {
-        new VideoTest(this, webView).start();
-    }
-
 }

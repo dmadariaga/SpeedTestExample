@@ -7,11 +7,11 @@ public interface MainTest {
 
     void onSpeedTestProgress(SpeedTestMode mode, int progressPercent, float transferRateBit);
 
-    void onWebPageLoaded(String url, long loadingTime);
+    void onWebPageLoaded(String url, long loadingTime, long sizeByte);
 
     void onWebPageTestFinish();
 
-    void onVideoEnded(String quality, int timesBuffering);
+    void onVideoEnded(String quality, int timesBuffering, long totalBytes);
 
     void onVideoTestFinish();
 }

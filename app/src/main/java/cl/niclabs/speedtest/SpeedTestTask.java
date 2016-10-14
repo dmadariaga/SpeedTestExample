@@ -32,7 +32,7 @@ public class SpeedTestTask extends AsyncTask<SpeedTestMode, Void, Void> {
                                                   float transferRateBitPerSeconds,
                                                   float transferRateOctetPerSeconds) {
                 Log.i("speed-test-app","download transfer rate  : " + transferRateBitPerSeconds + "Bps");
-                speedTest.onSpeedTestFinish(mode);
+                speedTest.onSpeedTestTaskFinish(mode);
             }
 
             @Override
@@ -45,7 +45,7 @@ public class SpeedTestTask extends AsyncTask<SpeedTestMode, Void, Void> {
                                                 float transferRateBitPerSeconds,
                                                 float transferRateOctetPerSeconds) {
                 Log.i("speed-test-app","upload transfer rate  : " + transferRateOctetPerSeconds + "Bps");
-                speedTest.onSpeedTestFinish(mode);
+                speedTest.onSpeedTestTaskFinish(mode);
             }
 
             @Override

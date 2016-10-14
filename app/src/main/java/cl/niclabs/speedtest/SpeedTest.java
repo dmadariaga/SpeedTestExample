@@ -56,11 +56,11 @@ public class SpeedTest {
 
     }
 
-    public void startSpeedTest(SpeedTestMode mode, String host, int fileOctetSize) {
+    private void startSpeedTest(SpeedTestMode mode, String host, int fileOctetSize) {
         new SpeedTestTask(this, host, fileOctetSize).execute(mode);
     }
 
-    public void onSpeedTestFinish(SpeedTestMode mode) {
+    protected void onSpeedTestTaskFinish(SpeedTestMode mode) {
         switch (mode){
             case DOWNLOAD:
                 startSpeedTest(SpeedTestMode.UPLOAD, host, fileOctetSize);
@@ -71,7 +71,7 @@ public class SpeedTest {
         }
     }
 
-    public void onProgress(SpeedTestMode mode, int progressPercent, float transferRateBit) {
+    protected void onProgress(SpeedTestMode mode, int progressPercent, float transferRateBit) {
         mainTest.onSpeedTestProgress(mode, progressPercent, transferRateBit);
     }
 }

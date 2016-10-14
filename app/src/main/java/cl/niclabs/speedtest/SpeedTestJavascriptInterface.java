@@ -35,4 +35,9 @@ public class SpeedTestJavascriptInterface {
                 Toast.LENGTH_SHORT).show();
     }
 
+    @JavascriptInterface
+    public void startBytes(){
+        videoTest.startBytes();
+    }
+
 }
