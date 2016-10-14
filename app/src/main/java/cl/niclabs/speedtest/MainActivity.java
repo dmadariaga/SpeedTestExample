@@ -1,21 +1,13 @@
 package cl.niclabs.speedtest;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-import android.webkit.JavascriptInterface;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -26,13 +18,10 @@ import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.util.ArrayList;
 
-import fr.bmartel.speedtest.ISpeedTestListener;
-import fr.bmartel.speedtest.SpeedTestError;
-import fr.bmartel.speedtest.SpeedTestReport;
-import fr.bmartel.speedtest.SpeedTestSocket;
+import fr.bmartel.speedtest.SpeedTestMode;
 import pl.pawelkleczkowski.customgauge.CustomGauge;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MainTest{
 
     private CustomGauge speedTestGauge;
     private GraphView downloadGraph;
@@ -47,11 +36,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView jitter;
     private TextView urlsTime;
     private EditText serverUrl;
-    private String host;
-    private int fileOctetSize;
     private EditText editTextFileSize;
     private WebView webView;
-    private long startTime, finishTime;
     private int i = 0;
 
 /*
@@ -64,70 +50,8 @@ public class MainActivity extends AppCompatActivity {
 https://developers.google.com/youtube/iframe_api_reference#Examples
  */
 
-    String frameVideo = "<html><body>" +
-                /*"<iframe id='player' class=\"youtube-player\" style=\"border: 0; width: 100%; height: 100%; padding:0px; margin:0px\" id=\"ytplayer\" type=\"text/html\" src=\"http://www.youtube.com/embed/" +
-                "Io7AbxE9hYk?start=266&enablejsapi=1" +
-                "\" frameborder=\"0\">\n" +
-                "</iframe>\n" + */
-            "<div id=\"player\"></div>\n" +
-            "<script type=\"text/javascript\">\n" +
-            "   var tag = document.createElement('script');\n" +
-            "   tag.src = 'https://www.youtube.com/iframe_api';\n" +
-            "   var firstScriptTag = document.getElementsByTagName('script')[0];\n" +
-            "   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);\n" +
-            "   var player;\n" +
-            "   var quality = ['tiny', 'small', 'medium', 'large', 'hd720'];\n" +
-            "   var lastState = -1;\n" +
-            "   var i = 0;\n" +
-            "   function onYouTubeIframeAPIReady() {\n" +
-            "       player = new YT.Player('player', {\n" +
-            "           height: '100%',\n" +
-            "           width: '100%',\n" +
-            "       playerVars: {\n" +
-            "           autoplay: 1,\n" +
-            "           controls: 0,\n" +
-            "           showinfo: 0\n" +
-            "       }," +
-            //"           videoId: '6pxRHBw-k8M',\n" +
-            "       events: {\n" +
-            "            'onReady': onPlayerReady,\n" +
-            "            'onStateChange': onPlayerStateChange,\n" +
-            "            'onPlaybackQualityChange': onPlayerPlaybackQualityChange\n" +
-            "          }\n" +
-            "        });\n\n" +
-            "   }\n" +
-
-            "   function testEcho(message) {\n" +
-            "       window.JSInterface.doEchoTest(message);\n" +
-            "   }\n" +
-            "   function onPlayerReady(event) {\n" +
-            "       player.loadVideoById({'videoId': 'Io7AbxE9hYk',\n" +
-            "               'startSeconds': 265,\n" +
-            "               'endSeconds': 275,\n" +
-            "               'suggestedQuality': quality[i]});\n" + //\"Io7AbxE9hYk\", 265, \"medium\");\n" +
-            //"       player.playVideo();\n" +
-            //"           player.setPlaybackQuality('tiny');\n" +
-            "   }\n" +
-            "   function onPlayerStateChange(event){\n" +
-            "       testEcho(event.data);\n" +
-            "       if (event.data == YT.PlayerState.ENDED && i < quality.length - 1) {\n" +
-            "           if (lastState == YT.PlayerState.PAUSED)" +
-            "               i = i+1;\n" +
-            "           testEcho(player.getPlaybackQuality());\n" +
-            "           player.loadVideoById({'videoId': 'Io7AbxE9hYk',\n" +
-            "                   'startSeconds': 265,\n" +
-            "                   'endSeconds': 275,\n" +
-            "                   'suggestedQuality': quality[i]});\n" +
-            "       }\n" +
-            "       lastState = event.data;\n" +
-            "   }\n" +
-            "   function onPlayerPlaybackQualityChange(event){\n" +
-            "       testEcho('quality: ' + event.data);\n" +
-            //"       player.setPlaybackQuality('tiny');\n" +
-            //"       testEcho('quality2: ' + event.data);\n" +
-            "   }\n" +
-            "</script>" +
-            "</body></html>";
+    private ArrayList<String> urls;
+    private long[] loadingTime;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -140,58 +64,8 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         editTextFileSize = (EditText) findViewById(R.id.editText);
         serverUrl = (EditText) findViewById(R.id.server_url);
         urlsTime = (TextView) findViewById(R.id.urls);
-        final String[] urls = {"http://www.facebook.com",
-                                "http://www.google.cl",
-                                "http://172.30.65.56:5000",
-                                "http://anakena.dcc.uchile.cl:5000",
-                                "http://www.niclabs.cl",
-                                "http://www.yapo.cl"
-        };
         webView = (WebView) findViewById(R.id.webView);
-        webView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                return true;
-            }
-        });
-        webView.getSettings().setJavaScriptEnabled(true);
-
-        webView.setWebViewClient(new WebViewClient(){
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                startTime = System.currentTimeMillis();
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                startTime = -1;
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                finishTime = System.currentTimeMillis();
-
-                if (startTime == -1)
-                    urlsTime.setText(urlsTime.getText() + "\n" + urls[i] + ": ERROR AL CARGAR");
-                else
-                    urlsTime.setText(urlsTime.getText() + "\n" + urls[i] + ": " + (finishTime-startTime) + " ms");
-
-                if (i<urls.length-1)
-                    webView.loadUrl(urls[++i]);
-                else{
-                    webView.setWebViewClient(new WebViewClient());
-                    webView.loadData(frameVideo, "text/html", "utf-8");
-                }
-            }
-
-
-        });
-        webView.getSettings().setAppCacheEnabled(false);
-        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
-        webView.addJavascriptInterface(new JSInterface(webView), "JSInterface");
-        webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
-
-        webView.loadUrl(urls[i]);
+        //webView.addJavascriptInterface(new JSInterface(webView), "JSInterface");
         //webView.loadUrl("https://www.youtube.com/embed/-3OvswCDfpY?showinfo=0&controls=0&rel=0&vq=tiny");
 
         pingGraph = (GraphView) findViewById(R.id.graph3);
@@ -255,14 +129,35 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
 
     }
     public void onClickStart(View view) throws Exception {
+        if (editTextFileSize.getText().toString().equals("")){
+            editTextFileSize.setText("1");
+        }
+        final int fileOctetSize = Integer.parseInt(editTextFileSize.getText().toString());
 
+        downloadGraph.removeAllSeries();
+        uploadGraph.removeAllSeries();
+        pingGraph.removeAllSeries();
+
+        downloadSeries = new LineGraphSeries<DataPoint>();
+        uploadSeries = new LineGraphSeries<DataPoint>();
+        downloadGraph.addSeries(downloadSeries);
+        uploadGraph.addSeries(uploadSeries);
+        pingSeries = new BarGraphSeries<>();
+        pingGraph.addSeries(pingSeries);
+        pingSeries.setSpacing(20);
+
+        urlsTime.setText("");
+        urls = new ArrayList<>();
+
+        //startSpeedTest(fileOctetSize);
+        startWebPagesTest();
         View mView = this.getCurrentFocus();
         if (mView != null) {
             InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(mView.getWindowToken(), 0);
         }
-
-        host = serverUrl.getText().toString();
+        /*
+        //host = serverUrl.getText().toString();
         if (editTextFileSize.getText().toString().equals("")){
             editTextFileSize.setText("1");
         }
@@ -285,7 +180,7 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         int count = 10;
         /*
         for (int i=0; i<count; i++){
-            PingResults pingResults = SpeedTest.ping("ping.online.net", 1);
+            PingResults pingResults = SpeedTest1.ping("ping.online.net", 1);
             Double rtt = pingResults.getMax();
             pingRtt.add(rtt);
             sumRtt += rtt;
@@ -301,7 +196,7 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         */
 
         /*
-        PingResults pingResults = SpeedTest.ping("ping.online.net", count);
+        PingResults pingResults = SpeedTest1.ping("ping.online.net", count);
         int maxPing = 0;
         latency.setText(" " + pingResults.getAvg());
         jitter.setText(" " + pingResults.getMdev());
@@ -313,202 +208,104 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         pingGraph.getViewport().setMaxY(maxPing);
         pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(true);*/
 
-        new SpeedTestTask().execute();
+        //new SpeedTestTask().execute();
     }
 
-    public class SpeedTestTask extends AsyncTask<Void, Void, String> {
-        public int downloadPercent = -1;
-        public boolean first = true;
-        @Override
-        protected String doInBackground(final Void... params) {
-
-            SpeedTestSocket speedTestSocket = new SpeedTestSocket();
-            speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
-
-                @Override
-                public void onDownloadPacketsReceived(long packetSize,
-                                                      float transferRateBitPerSeconds,
-                                                      float transferRateOctetPerSeconds) {
-                    Log.i("speed-test-app","download transfer rate  : " + transferRateBitPerSeconds + "Bps");
-                    new SpeedTestTask1().execute();
+    public void updateDownloadGraph(final int downloadPercent, final float transferRateBit){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                downloadTransferRate.setText((int) (transferRateBit / 1000) + " ");
+                //speedTestGauge.setValue((int) transferRateBit);
+                if (downloadSeries.isEmpty()){
+                    DataPoint firstPoint = new DataPoint(0, transferRateBit/1000);
+                    downloadSeries.appendData(firstPoint, false, 40000);
                 }
 
-                @Override
-                public void onDownloadError(SpeedTestError errorCode, String message) {
-                    Log.i("speed-test-app","Download error " + errorCode + " occured with message : " + message);
+                DataPoint newPoint = new DataPoint(downloadPercent, transferRateBit/1000);
+                downloadSeries.appendData(newPoint, false, 40000);
+
+                downloadGraph.getViewport().setMaxY( (int) (downloadGraph.getViewport().getMaxY(true) + 50) / 50 *50);
+            }
+        });
+    }
+
+    public void updateUploadGraph(final int uploadPercent, final float transferRateBit){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                uploadTransferRate.setText((int) (transferRateBit / 1000) + " ");
+                //speedTestGauge.setValue((int) transferRateBit);
+                if (uploadSeries.isEmpty()){
+                    DataPoint firstPoint = new DataPoint(0, transferRateBit/1000);
+                    uploadSeries.appendData(firstPoint, false, 40000);
                 }
 
-                @Override
-                public void onUploadPacketsReceived(long packetSize,
-                                                    float transferRateBitPerSeconds,
-                                                    float transferRateOctetPerSeconds) {
-                    Log.i("speed-test-app","download transfer rate  : " + transferRateOctetPerSeconds + "Bps");
-                }
+                DataPoint newPoint = new DataPoint(uploadPercent, transferRateBit/1000);
+                uploadSeries.appendData(newPoint, false, 4000);
 
-                @Override
-                public void onUploadError(SpeedTestError errorCode, String message) {
-                    Log.i("speed-test-app","Upload error " + errorCode + " occured with message : " + message);
-                }
+                uploadGraph.getViewport().setMaxY( (int) (uploadGraph.getViewport().getMaxY(true) + 50) / 50 *50);
+            }
+        });
+    }
 
-                @Override
-                public void onDownloadProgress(final float percent, final SpeedTestReport downloadReport) {
-                    //Log.i("speed-test-app","percentdown"+ percent);
-                    if (Math.round(percent) > downloadPercent) {
-                        downloadPercent = Math.round(percent);
-                        final float transferRateBit = downloadReport.getTransferRateBit();
+    public void startSpeedTest(int fileOctetSize) {
+        new SpeedTest(this, fileOctetSize).start();
+    }
 
-                        if (first){
-                            if (downloadPercent > 0){
-                                setData1(0, transferRateBit);
-                            }
-                            first = false;
-                        }
+    public void startWebPagesTest() {
+        new WebPagesTest(this, webView).start();
+    }
 
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                downloadTransferRate.setText((int) (transferRateBit / 1000) + " ");
-                                speedTestGauge.setValue((int) transferRateBit);
-                                //setData1(downloadReport.getReportTime() - downloadReport.getStartTime(), transferRateBit);
-                                setData1(downloadPercent, transferRateBit);
-                                //Log.d("SetData", downloadReport.getReportTime() - downloadReport.getStartTime() + " " + transferRateBit / 1000);
-                            }
-                        });
-                    }
-                }
+    @Override
+    public void onSpeedTestFinish() {
+        startWebPagesTest();
+    }
 
-                @Override
-                public void onUploadProgress(float percent,SpeedTestReport uploadReport) {
-                    Log.i("speed-test-app","percentup"+ percent);
-
-                }
-
-            });
-
-            //speedTestSocket.startDownload("ping.online.net", 80, "/1Mo.dat");
-            speedTestSocket.startDownload(host, 5000, "/speedtest/" + fileOctetSize);
-
-            return null;
+    @Override
+    public void onSpeedTestProgress(SpeedTestMode mode, int progressPercent, float transferRateBit) {
+        switch (mode){
+            case DOWNLOAD:
+                updateDownloadGraph(progressPercent, transferRateBit);
+                break;
+            case UPLOAD:
+                updateUploadGraph(progressPercent, transferRateBit);
+                break;
         }
     }
 
-    public class SpeedTestTask1 extends AsyncTask<Void, Void, String> {
-        public int uploadPercent = -1;
-        public float max = 0;
-        public boolean first = true;
-
-        @Override
-        protected String doInBackground(final Void... params) {
-
-            SpeedTestSocket speedTestSocket = new SpeedTestSocket();
-            speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
-
-                @Override
-                public void onDownloadPacketsReceived(long packetSize,
-                                                      float transferRateBitPerSeconds,
-                                                      float transferRateOctetPerSeconds) {
-                    Log.i("speed-test-app","download transfer rate  : " + transferRateBitPerSeconds + "Bps");
-                }
-
-                @Override
-                public void onDownloadError(SpeedTestError errorCode, String message) {
-                    Log.i("speed-test-app","Download error " + errorCode + " occured with message : " + message);
-                }
-
-                @Override
-                public void onUploadPacketsReceived(long packetSize,
-                                                    float transferRateBitPerSeconds,
-                                                    float transferRateOctetPerSeconds) {
-                    Log.i("speed-test-app","download transfer rate  : " + transferRateOctetPerSeconds + "Bps");
-                }
-
-                @Override
-                public void onUploadError(SpeedTestError errorCode, String message) {
-                    Log.i("speed-test-app","Upload error " + errorCode + " occured with message : " + message);
-
-                }
-
-                @Override
-                public void onDownloadProgress(final float percent, final SpeedTestReport downloadReport) {
-                    //Log.i("speed-test-app","percentdown"+ percent);
-                    final float transferRateBit = downloadReport.getTransferRateBit();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            //percentText.setText(transferRateBit +" ");
-                        }
-                    });
-                }
-
-                @Override
-                public void onUploadProgress(float percent,final SpeedTestReport uploadReport) {
-                    if (Math.round(percent) > uploadPercent) {
-                        /*if (first){
-                            uploadGraph.getViewport().setMinX((uploadReport.getReportTime() - uploadReport.getStartTime())/1000);
-                            Log.d("SetData", uploadReport.getReportTime() - uploadReport.getStartTime() + " ");
-                            first = false;
-                        }*/
-                        uploadPercent = Math.round(percent);
-                        final float transferRateBit = uploadReport.getTransferRateBit();
-                        Log.i("speed-test-app", "percentup" + uploadPercent + " bps " + transferRateBit);
-                        max = (transferRateBit > max ? transferRateBit : max);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                uploadTransferRate.setText((int) (transferRateBit / 1000) + " ");
-                                speedTestGauge.setValue((int) transferRateBit);
-                                //setData2(uploadReport.getReportTime() - uploadReport.getStartTime(), transferRateBit);
-                                setData2(uploadPercent, transferRateBit);
-                                //Log.d("SetData", uploadReport.getReportTime() - uploadReport.getStartTime() + " " + transferRateBit);
-                            }
-                        });
-                    }
-                }
-
-            });
-            //Log.d("PING", speedTestSocket.getSocketTimeout() + " TIMEOUT");
-            //speedTestSocket.setSocketTimeout(5000);
-            //speedTestSocket.startUpload("1.testdebit.info", 80, "/", 1000000);
-            speedTestSocket.startUpload(host, 5000, "/speedtest/", fileOctetSize*1000000);
-            Log.d("MAX", max + " bit/s");
-            return null;
-        }
+    @Override
+    public void onWebPageLoaded(String url, long loadingTime){
+        urlsTime.setText(urlsTime.getText() + "\n" + url + ": " + loadingTime + " ms");
     }
 
-    private void setData1(long time, float transferRateBit) {
-        DataPoint newPoint = new DataPoint(time, transferRateBit/1000);
-        downloadSeries.appendData(newPoint, false, 40000);
-        //downloadGraph.getViewport().setMaxX(time/1000.0);
-        //Log.d("GetMAX", transferRateBit/1000+" "+downloadGraph.getViewport().getMaxY(true));
-        downloadGraph.getViewport().setMaxY( (int) (downloadGraph.getViewport().getMaxY(true) + 50) / 50 *50);
-
-        //mGraph.addSeries(new LineGraphSeries<DataPoint>(new DataPoint[] {newPoint}));
-    }
-    private void setData2(long time, float transferRateBit) {
-        DataPoint newPoint = new DataPoint(time, transferRateBit/1000);
-        uploadSeries.appendData(newPoint, false, 4000);
-        //uploadGraph.getViewport().setMaxX(time/1000.0);
-        uploadGraph.getViewport().setMaxY( (int) (uploadGraph.getViewport().getMaxY(true) + 50) / 50 *50);
-
-        //mGraph.addSeries(new LineGraphSeries<DataPoint>(new DataPoint[] {newPoint}));
+    @Override
+    public void onWebPageTestFinish() {
+        //startVideoTest();
     }
 
-
-    public class JSInterface{
-
-        private WebView mAppView;
-        public JSInterface  (WebView appView) {
-            this.mAppView = appView;
-        }
-
-        @JavascriptInterface
-        public void doEchoTest(String echo){
-            Log.d("VideoView", echo);
-        }
-
-        @JavascriptInterface
-        public void playVideo(){
-            emulateClick(webView);
-        }
+    @Override
+    public void onVideoEnded(final String quality, final int timesBuffering) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                urlsTime.setText(urlsTime.getText() + "\nTime buffering in " + quality + ": " + timesBuffering+ "ms");
+            }
+        });
     }
+
+    @Override
+    public void onVideoTestFinish() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                webView.loadUrl("about:blank");
+            }
+        });
+    }
+
+    private void startVideoTest() {
+        new VideoTest(this, webView).start();
+    }
+
 }
