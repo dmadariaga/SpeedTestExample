@@ -11,7 +11,7 @@ public interface MainTest {
 
     void onWebPageTestFinish();
 
-    void onVideoEnded(String quality, int timesBuffering, long totalBytes);
+    void onVideoEnded(String quality, int timesBuffering, float loadedFraction, long totalBytes);
 
     void onVideoTestFinish();
 }

@@ -1,6 +1,8 @@
 package cl.niclabs.speedtest;
 
+import android.net.TrafficStats;
 import android.os.AsyncTask;
+import android.os.Process;
 import android.util.Log;
 
 import java.io.IOException;
@@ -9,6 +11,9 @@ import java.net.URL;
 
 public class WebPagesTestTask extends AsyncTask<String, Void, Void> {
     WebPagesTest webPagesTest;
+    protected static long previousRxBytes;
+    protected static long previousTxBytes;
+
     public WebPagesTestTask(WebPagesTest webPagesTest) {
         this.webPagesTest = webPagesTest;
     }
@@ -18,6 +23,9 @@ public class WebPagesTestTask extends AsyncTask<String, Void, Void> {
         URL url;
         HttpURLConnection urlConnection = null;
         int responseCode = -1;
+        previousRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
+        previousTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
+        Log.d("ASDASD", "INICIALP " + params[0]+" "+previousRxBytes);
         try {
             url = new URL(params[0]);
             urlConnection = (HttpURLConnection) url.openConnection();
@@ -25,10 +33,14 @@ public class WebPagesTestTask extends AsyncTask<String, Void, Void> {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            urlConnection.disconnect();
+            long currentRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
+            Log.d("ASDASD", "FINALP "+params[0]+" "+currentRxBytes);
             webPagesTest.onResponseReceived(responseCode);
             Log.d("STATUS", params[0] + " " + responseCode);
-            urlConnection.disconnect();
         }
         return null;
     }
+
+
 }

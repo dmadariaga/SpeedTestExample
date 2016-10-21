@@ -13,28 +13,19 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.jjoe64.graphview.GraphView;
-import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import java.util.ArrayList;
-
 import fr.bmartel.speedtest.SpeedTestMode;
-import pl.pawelkleczkowski.customgauge.CustomGauge;
 
 public class MainActivity extends AppCompatActivity implements MainTest{
 
-    private CustomGauge speedTestGauge;
     private GraphView downloadGraph;
     private GraphView uploadGraph;
-    private GraphView pingGraph;
     private LineGraphSeries<DataPoint> downloadSeries;
     private LineGraphSeries<DataPoint> uploadSeries;
-    private BarGraphSeries<DataPoint> pingSeries;
     private TextView downloadTransferRate;
     private TextView uploadTransferRate;
-    private TextView latency;
-    private TextView jitter;
     private TextView urlsTime;
     private EditText serverUrl;
     private EditText editTextFileSize;
@@ -55,26 +46,12 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        speedTestGauge = (CustomGauge) findViewById(R.id.gauge3);
         downloadTransferRate = (TextView) findViewById(R.id.downloadTransferRate);
         uploadTransferRate = (TextView) findViewById(R.id.uploadTransferRate);
-        latency = (TextView) findViewById(R.id.latency);
-        jitter = (TextView) findViewById(R.id.jitter);
         editTextFileSize = (EditText) findViewById(R.id.editText);
         serverUrl = (EditText) findViewById(R.id.server_url);
         urlsTime = (TextView) findViewById(R.id.urls);
         webView = (WebView) findViewById(R.id.webView);
-        //webView.addJavascriptInterface(new JSInterface(webView), "JSInterface");
-        //webView.loadUrl("https://www.youtube.com/embed/-3OvswCDfpY?showinfo=0&controls=0&rel=0&vq=tiny");
-
-        pingGraph = (GraphView) findViewById(R.id.graph3);
-        pingGraph.getViewport().setXAxisBoundsManual(true);
-        pingGraph.getViewport().setYAxisBoundsManual(true);
-        pingGraph.getViewport().setMinX(0);
-        pingGraph.getViewport().setMaxX(10);
-        pingGraph.getViewport().setMinY(0);
-        pingGraph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
-        pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(false);
 
         downloadGraph = (GraphView) findViewById(R.id.graph1);
         downloadGraph.getViewport().setXAxisBoundsManual(true);
@@ -135,15 +112,11 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
 
         downloadGraph.removeAllSeries();
         uploadGraph.removeAllSeries();
-        pingGraph.removeAllSeries();
 
         downloadSeries = new LineGraphSeries<DataPoint>();
         uploadSeries = new LineGraphSeries<DataPoint>();
         downloadGraph.addSeries(downloadSeries);
         uploadGraph.addSeries(uploadSeries);
-        pingSeries = new BarGraphSeries<>();
-        pingGraph.addSeries(pingSeries);
-        pingSeries.setSpacing(20);
 
         urlsTime.setText("");
 
@@ -152,62 +125,9 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
         //startVideoTest();
         View mView = this.getCurrentFocus();
         if (mView != null) {
-            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(mView.getWindowToken(), 0);
         }
-        /*
-        //host = serverUrl.getText().toString();
-        if (editTextFileSize.getText().toString().equals("")){
-            editTextFileSize.setText("1");
-        }
-        fileOctetSize = Integer.parseInt(editTextFileSize.getText().toString());
-        downloadGraph.removeAllSeries();
-        uploadGraph.removeAllSeries();
-        pingGraph.removeAllSeries();
-
-        downloadSeries = new LineGraphSeries<DataPoint>();
-        uploadSeries = new LineGraphSeries<DataPoint>();
-        downloadGraph.addSeries(downloadSeries);
-        uploadGraph.addSeries(uploadSeries);
-        pingSeries = new BarGraphSeries<>();
-        pingGraph.addSeries(pingSeries);
-        pingSeries.setSpacing(20);
-
-        ArrayList<Double> pingRtt = new ArrayList<>();
-        double sumRtt = 0;
-        double maxRtt = 0d;
-        int count = 10;
-        /*
-        for (int i=0; i<count; i++){
-            PingResults pingResults = SpeedTest1.ping("ping.online.net", 1);
-            Double rtt = pingResults.getMax();
-            pingRtt.add(rtt);
-            sumRtt += rtt;
-            maxRtt = (rtt > maxRtt ? (rtt.intValue()+100)/100*100 : maxRtt);
-            pingGraph.getViewport().setMaxY(maxRtt);
-
-            DataPoint point = new DataPoint(i + 0.5, rtt);
-            pingSeries.appendData(point, false, 10);
-            pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(true);
-        }
-        latency.setText(" " + sumRtt/10);
-        //jitter.setText(" " + pingResults.getMdev());
-        */
-
-        /*
-        PingResults pingResults = SpeedTest1.ping("ping.online.net", count);
-        int maxPing = 0;
-        latency.setText(" " + pingResults.getAvg());
-        jitter.setText(" " + pingResults.getMdev());
-        for (int i=0; i<pingResults.getRttList().size(); i++){
-            maxPing = (pingResults.getRttList().get(i) > maxPing ? (pingResults.getRttList().get(i).intValue()+100)/100*100 : maxPing);
-            DataPoint point = new DataPoint(i + 0.5, pingResults.getRttList().get(i));
-            pingSeries.appendData(point, false, count);
-        }
-        pingGraph.getViewport().setMaxY(maxPing);
-        pingGraph.getGridLabelRenderer().setVerticalLabelsVisible(true);*/
-
-        //new SpeedTestTask().execute();
     }
 
     public void updateDownloadGraph(final int downloadPercent, final float transferRateBit){
@@ -215,7 +135,6 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
             @Override
             public void run() {
                 downloadTransferRate.setText((int) (transferRateBit / 1000) + " ");
-                //speedTestGauge.setValue((int) transferRateBit);
                 if (downloadSeries.isEmpty()){
                     DataPoint firstPoint = new DataPoint(0, transferRateBit/1000);
                     downloadSeries.appendData(firstPoint, false, 40000);
@@ -234,7 +153,6 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
             @Override
             public void run() {
                 uploadTransferRate.setText((int) (transferRateBit / 1000) + " ");
-                //speedTestGauge.setValue((int) transferRateBit);
                 if (uploadSeries.isEmpty()){
                     DataPoint firstPoint = new DataPoint(0, transferRateBit/1000);
                     uploadSeries.appendData(firstPoint, false, 40000);
@@ -288,11 +206,14 @@ https://developers.google.com/youtube/iframe_api_reference#Examples
     }
 
     @Override
-    public void onVideoEnded(final String quality, final int timesBuffering, final long totalBytes) {
+    public void onVideoEnded(final String quality, final int timesBuffering, final float loadedFraction, final long totalBytes) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                urlsTime.setText(urlsTime.getText() + "\nTime buffering in " + quality + ": " + timesBuffering+ "ms, " + Formatter.formatFileSize(getApplicationContext(), totalBytes));
+                urlsTime.setText(urlsTime.getText() + "\nFor " + quality + ": "
+                        + timesBuffering+ "ms buffering, "
+                        + (int)(loadedFraction*100) + "% loaded, "
+                        + Formatter.formatFileSize(getApplicationContext(), totalBytes));
             }
         });
     }

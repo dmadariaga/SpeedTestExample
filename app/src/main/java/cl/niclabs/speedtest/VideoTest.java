@@ -13,8 +13,8 @@ import android.webkit.WebViewClient;
 public class VideoTest {
     private MainTest mainTest;
     private WebView webView;
-    private long previousRxBytes;
-    private long previousTxBytes;
+    private long previousRxBytes = -1;
+    private long previousTxBytes = -1;
 
     public VideoTest(MainTest mainTest, WebView webView) {
         this.mainTest = mainTest;
@@ -40,13 +40,15 @@ public class VideoTest {
         webView.loadUrl("file:///android_asset/frameVideo.js");
     }
 
-    public void onVideoEnded(String quality, int timesBuffering) {
+    public void onVideoEnded(String quality, int timesBuffering, float loadedFraction) {
 
         long currentRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
         long currentTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
         long totalBytes = (currentRxBytes - previousRxBytes) + (currentTxBytes - previousTxBytes);
+        Log.d("ASDASD", "Final Video " + currentRxBytes);
+        previousRxBytes = -1;
 
-        mainTest.onVideoEnded(getQuality(quality), timesBuffering, totalBytes);
+        mainTest.onVideoEnded(getQuality(quality), timesBuffering, loadedFraction, totalBytes);
     }
 
     public String getQuality(String quality){
@@ -83,8 +85,11 @@ public class VideoTest {
         mainTest.onVideoTestFinish();
     }
 
-    public void startBytes() {
-        previousRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
-        previousTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
+    public void startCountingBytes() {
+        if (previousRxBytes == -1) {
+            previousRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
+            previousTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
+            Log.d("ASDASD", "INICIAL Video " + previousRxBytes);
+        }
     }
 }

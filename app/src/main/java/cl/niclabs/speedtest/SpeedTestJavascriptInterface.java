@@ -21,8 +21,8 @@ public class SpeedTestJavascriptInterface {
     }
 
     @JavascriptInterface
-    public void onVideoEnded(final String quality, final int timesBuffering){
-        videoTest.onVideoEnded(quality, timesBuffering);
+    public void onVideoEnded(String quality, int timesBuffering, float loadedFraction){
+        videoTest.onVideoEnded(quality, timesBuffering, loadedFraction);
     }
     @JavascriptInterface
     public void onVideoTestFinish(){
@@ -36,8 +36,8 @@ public class SpeedTestJavascriptInterface {
     }
 
     @JavascriptInterface
-    public void startBytes(){
-        videoTest.startBytes();
+    public void startCountingBytes(){
+        videoTest.startCountingBytes();
     }
 
 }

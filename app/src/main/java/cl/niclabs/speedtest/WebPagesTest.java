@@ -106,17 +106,13 @@ public class WebPagesTest {
         webView.getSettings().setJavaScriptEnabled(true);
 
         webView.setWebViewClient(new WebViewClient() {
-            private long startTime;
+            private long startTime = -1;
             private long finishTime;
-            private long previousRxBytes;
-            private long previousTxBytes;
 
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                startTime = System.currentTimeMillis();
-                previousRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
-                Log.d("ASDASD", "INICIAL "+previousRxBytes);
-                previousTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
+                if (startTime == -1)
+                    startTime = System.currentTimeMillis();
             }
 
             @Override
@@ -130,33 +126,18 @@ public class WebPagesTest {
                 loadingTime[i] = finishTime - startTime;
 
                 long currentRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
-                Log.d("ASDASD", "FINAL "+currentRxBytes);
-
                 long currentTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
-                sizeBytes[i] = (currentRxBytes - previousRxBytes) + (currentTxBytes - previousTxBytes);
+                Log.d("ASDASD", "FINAL "+url+" "+currentRxBytes);
+
+                sizeBytes[i] = (currentRxBytes - WebPagesTestTask.previousRxBytes) + (currentTxBytes - WebPagesTestTask.previousTxBytes);
 
                 mainTest.onWebPageLoaded(names.get(i), loadingTime[i], sizeBytes[i]);
                 i++;
+                startTime = -1;
                 loadNextPage();
-
             }
         });
-        /*
-        webView.setWebChromeClient(new WebChromeClient(){
-            private long previousBytes = TrafficStats.getUidRxBytes(Process.myUid());
-            private long previousBytess = TrafficStats.getUidTxBytes(Process.myUid());
 
-            @Override
-            public void onProgressChanged(WebView view, int newProgress) {
-                long currentBytes = TrafficStats.getUidRxBytes(Process.myUid());
-                long currentBytess = TrafficStats.getUidTxBytes(Process.myUid());
-                long totalBytes = currentBytes - previousBytes;
-                long totalBytess = currentBytess - previousBytess;
-
-                Log.d("PROGRESS", "Current Bytes ==>   " + totalBytes + " " + totalBytess
-                        + "   New Progress ==>   " + newProgress);
-             }
-        });*/
         webView.getSettings().setAppCacheEnabled(false);
         webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.clearCache(true);
@@ -169,6 +150,9 @@ public class WebPagesTest {
             @Override
             public void run() {
                 if (responseCode >= 200 && responseCode < 400) {
+                    WebPagesTestTask.previousRxBytes = TrafficStats.getUidRxBytes(Process.myUid());
+                    WebPagesTestTask.previousTxBytes = TrafficStats.getUidTxBytes(Process.myUid());
+                    Log.d("ASDASD", "INICIAL  " + WebPagesTestTask.previousRxBytes);
                     webView.loadUrl(urls.get(i));
                 }
                 else{
